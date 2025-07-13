@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\BlogModel;
+use App\Models\CategoryModel; // ✅ add this
 use CodeIgniter\Controller;
 
 class HomeController extends Controller
@@ -17,6 +18,8 @@ class HomeController extends Controller
         helper('text');
 
         $model = new BlogModel();
+        $categoryModel = new CategoryModel(); // ✅ new
+
         $search = $this->request->getGet('search');
         $category = $this->request->getGet('category');
 
@@ -37,7 +40,9 @@ class HomeController extends Controller
                                  ->limit(10)
                                  ->findAll();
 
-        $data['categories'] = $model->getCategories();
+        // ✅ get all categories from categories table
+        $data['categories'] = $categoryModel->findAll();
+
         $data['selectedCategory'] = $category ?? '';
         $data['searchTerm'] = $search ?? '';
 

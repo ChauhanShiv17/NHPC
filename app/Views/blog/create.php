@@ -10,7 +10,6 @@
             padding: 2rem;
             margin: 0;
         }
-
         .form-container {
             max-width: 600px;
             background: white;
@@ -19,19 +18,16 @@
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-
         h2 {
             text-align: center;
             color: #003366;
         }
-
         label {
             display: block;
             margin-top: 1rem;
             font-weight: 500;
             color: #333;
         }
-
         input[type="text"],
         textarea,
         select {
@@ -42,7 +38,6 @@
             border: 1px solid #ccc;
             font-size: 1rem;
         }
-
         button {
             margin-top: 2rem;
             background-color: #0066cc;
@@ -54,11 +49,9 @@
             cursor: pointer;
             transition: background 0.3s;
         }
-
         button:hover {
             background-color: #004b99;
         }
-
         .back-link {
             display: block;
             text-align: center;
@@ -90,7 +83,7 @@
             <select name="category" required>
                 <option value="">-- Choose Category --</option>
                 <?php foreach ($categories as $cat): ?>
-                    <option value="<?= esc($cat['category']) ?>"><?= esc($cat['category']) ?></option>
+                    <option value="<?= esc($cat['category_name']) ?>"><?= esc($cat['category_name']) ?></option>
                 <?php endforeach; ?>
             </select>
         <?php else: ?>

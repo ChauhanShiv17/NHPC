@@ -21,4 +21,23 @@ class Dashboard extends BaseController
 
         return view('author/dashboard', $data);
     }
+
+    public function rejectedBlogs()
+{
+    $this->requireLogin();
+    $this->checkRole('author');
+
+    $model = new \App\Models\BlogModel();
+    $authorId = session()->get('user_id');
+
+    $data['blogs'] = $model->where('author_id', $authorId)
+                           ->where('is_approved', -1)
+                           ->orderBy('created_at', 'DESC')
+                           ->findAll();
+
+    return view('author/rejected_blogs', $data);
+}
+
+
+
 }

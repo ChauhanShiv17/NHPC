@@ -97,11 +97,10 @@
   <header>
     <h1>Admin Dashboard</h1>
     <p>Welcome! Manage content and users</p>
+    
+    
   </header>
 
-  <div class="logout">
-    <a href="<?= site_url('/logout') ?>">Logout</a>
-  </div>
 
   <div class="container">
     <div class="dashboard-buttons">
@@ -117,15 +116,26 @@
 
       <div class="card">
         <h3>👥 All Users</h3>
-        <a href="<?= site_url('/admin/users') ?>">View Users</a>
+<a href="<?= site_url('/admin/all-users') ?>">Manage Users</a>
       </div>
 
       <div class="card">
         <h3>📰 All Blogs</h3>
         <a href="<?= site_url('/admin/all-blogs') ?>">View Blogs</a>
       </div>
+
+      <div class="card">
+        <h3>👥 Rejected Blogs</h3>
+<a href="<?= site_url('/admin/rejected-blogs') ?>">View Rejected Blogs</a>
+      </div>
     </div>
   </div>
+
+  <div class="card">
+        <h3>⏻Logout</h3>
+        <p>Exit your admin account</p>
+        <a href="<?= site_url('/logout') ?>">Logout</a>
+      </div>
 
   <footer>
     © <?= date('Y') ?> NHPC Blog System | Admin Panel

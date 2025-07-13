@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\BlogModel;
+use App\Models\CategoryModel;
 
 class BlogController extends BaseController
 {
@@ -12,8 +13,8 @@ class BlogController extends BaseController
         $this->requireLogin(); // Ensure user is logged in
         $this->checkRole('author'); // Ensure user is an author
 
-        $model = new BlogModel();
-        $data['categories'] = $model->getCategories(); // Load categories for dropdown
+        $categoryModel = new CategoryModel();
+        $data['categories'] = $categoryModel->getAllCategories();
 
         return view('blog/create', $data);
     }
@@ -38,10 +39,10 @@ class BlogController extends BaseController
         $data = [
             'title'       => $this->request->getPost('title'),
             'content'     => $this->request->getPost('content'),
-            'author_id'   => session()->get('user_id'), // Logged in author's ID
+            'author_id'   => session()->get('user_id'),
             'image'       => $imageName,
             'category'    => $this->request->getPost('category'),
-            'is_approved' => 0 // Blog requires admin approval
+            'is_approved' => 0
         ];
 
         $model->insert($data);
@@ -87,15 +88,75 @@ class BlogController extends BaseController
     }
 
     // View individual blog post
-    public function view($id)
-    {
-        $model = new BlogModel();
-        $blog = $model->find($id);
+   // View individual blog post
+public function view($id)
+{
+    $model = new BlogModel();
+    $blog = $model->select('blogs.*, users.username as author_name')
+                  ->join('users', 'users.id = blogs.author_id', 'left')
+                  ->where('blogs.id', $id)
+                  ->first();
 
-        if (!$blog) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Blog with ID $id not found");
-        }
-
-        return view('blog/view', ['blog' => $blog]);
+    if (!$blog) {
+        throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Blog with ID $id not found");
     }
+
+    return view('blog/view', ['blog' => $blog]);
+}
+
+
+    // Search blogs and show homepage
+    public function search()
+    {
+        $query = $this->request->getGet('q');
+
+        $blogModel = new BlogModel();
+        $blogs = $blogModel->like('title', $query)
+                           ->orLike('content', $query)
+                           ->where('is_approved', 1)
+                           ->findAll();
+
+        // ✅ Get all categories from CategoryModel instead of distinct from blog table
+        $categoryModel = new CategoryModel();
+        $categories = $categoryModel->getAllCategories();
+
+        return view('home', [
+            'blogs' => $blogs,
+            'categories' => $categories,
+            'query' => $query
+        ]);
+    }
+
+    // Load more blogs for infinite scroll / load more
+public function loadMore()
+{
+    $offset = $this->request->getGet('offset');
+    $limit = 6; // number of blogs per load
+
+    $blogModel = new \App\Models\BlogModel();
+    $blogs = $blogModel
+        ->where('is_approved', 1)
+        ->orderBy('created_at', 'DESC')
+        ->findAll($limit, $offset);
+
+    return $this->response->setJSON($blogs);
+}
+
+// In app/Controllers/BlogController.php
+public function searchSuggest()
+{
+    $query = $this->request->getGet('q');
+    $blogModel = new \App\Models\BlogModel();
+
+    $blogs = $blogModel
+        ->like('title', $query)
+        ->select('id, title, image')   // make sure 'image' is selected
+        ->limit(5)
+        ->findAll();
+
+    return $this->response->setJSON($blogs);
+}
+
+
+
 }

@@ -7,14 +7,14 @@ class BlogModel extends Model
 {
     protected $table = 'blogs';
     protected $primaryKey = 'id';
-    
+
     protected $allowedFields = [
-        'title', 
-        'content', 
-        'author_id', 
-        'image', 
-        'category', 
-        'is_approved', 
+        'title',
+        'content',
+        'author_id',
+        'image',
+        'category',
+        'is_approved',
         'created_at'
     ];
 
@@ -31,16 +31,15 @@ class BlogModel extends Model
 
     // 📂 Get all distinct blog categories (approved only)
     public function getCategories()
-{
-    return $this->select('category')
-                ->where('is_approved', 1)
-                ->where('category !=', '') // avoid empty strings
-                ->where('category IS NOT NULL', null, false) // avoid NULL
-                ->groupBy('category')
-                ->orderBy('category', 'ASC')
-                ->findAll();
-}
-
+    {
+        return $this->select('category')
+                    ->distinct()
+                    ->where('is_approved', 1)
+                    ->where('category !=', '') // avoid empty strings
+                    ->where('category IS NOT NULL', null, false) // avoid NULL
+                    ->orderBy('category', 'ASC')
+                    ->findAll();
+    }
 
     // 📚 Get blogs by category
     public function getBlogsByCategory($category)

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+  <meta charset="UTF-8">
     <title>Author Dashboard</title>
-    <style>
+  <style>
         body {
             margin: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -90,8 +90,8 @@
             .card {
                 width: 90%;
             }
-        }
-    </style>
+    }
+  </style>
 </head>
 <body>
     <header>
@@ -107,9 +107,16 @@
         </div>
 
         <div class="card">
-            <h3>View Approved Blogs</h3>
+            <h3>All Blogs</h3>
             <p>See what's been published</p>
             <a href="/blog">View Blogs</a>
+        </div>
+
+        <div class="card">
+            <h3>Rejected</h3>
+            <p>My Rejected Blogs</p>
+            <a href="<?= site_url('/author/rejected-blogs') ?>">View My Rejected Blogs</a>
+
         </div>
 
         <div class="card">
@@ -117,7 +124,8 @@
             <p>Exit your author account</p>
             <a href="/logout">Logout</a>
         </div>
-    </div>
+
+  </div>
 
     <footer>
         © <?= date('Y') ?> NHPC Blog System | Author Panel
