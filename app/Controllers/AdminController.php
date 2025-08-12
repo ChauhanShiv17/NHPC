@@ -12,7 +12,7 @@ class AdminController extends BaseController
     {
         $this->requireLogin();
         $this->checkRole('admin');
-        return view('admin/dashboard'); // main dashboard view
+        return view('admin/dashboard');
     }
 
     // Pending blogs
@@ -25,6 +25,54 @@ class AdminController extends BaseController
         $data['blogs'] = $blogModel->where('is_approved', 0)->findAll();
 
         return view('admin/pending_blogs', $data);
+    }
+
+    // View single pending blog (full content)
+    public function viewPendingBlog($id)
+    {
+        $this->requireLogin();
+        $this->checkRole('admin');
+
+        $model = new BlogModel();
+        $blog = $model->where('id', $id)->where('is_approved', 0)->first();
+
+        if (!$blog) {
+            return redirect()->back()->with('error', 'Blog not found!');
+        }
+
+        return view('admin/view_pending_blog', ['blog' => $blog]);
+    }
+
+    // Approve blog
+    public function approve($id)
+    {
+        $this->requireLogin();
+        $this->checkRole('admin');
+
+        $model = new BlogModel();
+        $model->update($id, [
+            'is_approved' => 1,
+            'admin_review' => null
+        ]);
+
+        return redirect()->to('/admin/pending-blogs')->with('success', 'Blog approved.');
+    }
+
+    // Reject blog with admin review
+    public function reject_with_review($id)
+    {
+        $this->requireLogin();
+        $this->checkRole('admin');
+
+        $review = $this->request->getPost('review');
+
+        $model = new BlogModel();
+        $model->update($id, [
+            'is_approved' => -1,
+            'admin_review' => $review
+        ]);
+
+        return redirect()->to('/admin/pending-blogs')->with('success', 'Blog rejected with review.');
     }
 
     // Pending admins
@@ -65,6 +113,19 @@ class AdminController extends BaseController
 
         return redirect()->to('/admin/pending-admins')->with('success', 'Admin rejected.');
     }
+
+    public function viewPending($id)
+{
+    $blogModel = new \App\Models\BlogModel();
+    $blog = $blogModel->find($id);
+
+    if (!$blog) {
+        throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Blog not found");
+    }
+
+    return view('admin/view_pending_blog', ['blog' => $blog]);
+}
+
 
     // View all registered users
     public function allUsers()
@@ -117,35 +178,25 @@ class AdminController extends BaseController
         return view('admin/all_blogs', $data);
     }
 
-    // Approve blog
-    public function approve($id)
+    // View rejected blogs with author name
+    public function rejectedBlogs()
     {
         $this->requireLogin();
         $this->checkRole('admin');
 
-        $blogModel = new BlogModel();
-        $blogModel->update($id, ['is_approved' => 1]);
+        $db = \Config\Database::connect();
+        $builder = $db->table('blogs');
+        $builder->select('blogs.*, users.username as author_name');
+        $builder->join('users', 'blogs.author_id = users.id');
+        $builder->where('blogs.is_approved', -1);
+        $builder->orderBy('blogs.created_at', 'DESC');
+        $query = $builder->get();
+        $data['blogs'] = $query->getResultArray();
 
-        return redirect()->to('/admin/pending-blogs')->with('success', 'Blog approved.');
+        return view('admin/rejected_blogs', $data);
     }
 
-    // Reject blog
-    public function reject($id)
-{
-    $this->requireLogin();
-    $this->checkRole('admin');
-
-    $blogModel = new BlogModel();
-    $blogModel->update($id, [
-        'is_approved' => -1,
-        'rejected_by' => 'admin'
-    ]);
-
-    return redirect()->to('/admin/pending-blogs')->with('success', 'Blog rejected.');
-}
-
-
-    // Old moderation (not needed, but kept)
+    // Old moderation dashboard (all blogs)
     public function index()
     {
         $this->requireLogin();
@@ -156,25 +207,4 @@ class AdminController extends BaseController
 
         return view('admin/dashboard', $data);
     }
-
-    // View rejected blogs with author name
-public function rejectedBlogs()
-{
-    $this->requireLogin();
-    $this->checkRole('admin');
-
-    $db = \Config\Database::connect();
-    $builder = $db->table('blogs');
-    $builder->select('blogs.*, users.username as author_name');
-    $builder->join('users', 'blogs.author_id = users.id');
-    $builder->where('blogs.is_approved', -1);
-    $builder->orderBy('blogs.created_at', 'DESC');
-    $query = $builder->get();
-    $data['blogs'] = $query->getResultArray();
-
-    return view('admin/rejected_blogs', $data);
-}
-
-
-
 }

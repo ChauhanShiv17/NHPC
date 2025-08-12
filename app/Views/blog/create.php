@@ -73,7 +73,7 @@
         <input type="text" name="title" required>
 
         <label for="content">Content</label>
-        <textarea name="content" rows="6" required></textarea>
+        <textarea name="content" id="editor" rows="6"></textarea>
 
         <label for="image">Image</label>
         <input type="file" name="image">
@@ -96,6 +96,30 @@
 
     <a class="back-link" href="<?= site_url('/') ?>">← Back to Home</a>
 </div>
+
+<!-- CKEditor script -->
+<script src="https://cdn.ckeditor.com/ckeditor5/41.2.0/classic/ckeditor.js"></script>
+<script>
+    let editorInstance;
+    ClassicEditor
+        .create(document.querySelector('#editor'), {
+            simpleUpload: {
+                uploadUrl: '<?= site_url('blog/uploadImage') ?>'
+            }
+        })
+        .then(editor => {
+            editorInstance = editor;
+        })
+        .catch(error => {
+            console.error(error);
+        });
+
+    document.querySelector('form').addEventListener('submit', function() {
+        document.querySelector('#editor').value = editorInstance.getData();
+    });
+</script>
+
+
 
 </body>
 </html>

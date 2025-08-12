@@ -4,6 +4,9 @@ namespace App\Controllers;
 
 use App\Models\BlogModel;
 use App\Models\CategoryModel;
+use App\Models\LikeModel;
+use App\Models\CommentModel;
+use App\Libraries\AIModerator;
 
 class BlogController extends BaseController
 {
@@ -22,15 +25,14 @@ class BlogController extends BaseController
     // Store the new blog post
     public function store()
     {
-        $this->requireLogin(); // Ensure user is logged in
-        $this->checkRole('author'); // Ensure user is an author
+        $this->requireLogin();
+        $this->checkRole('author');
 
         $model = new BlogModel();
 
         $imageName = null;
         $image = $this->request->getFile('image');
 
-        // Handle image upload
         if ($image && $image->isValid() && !$image->hasMoved()) {
             $imageName = $image->getRandomName();
             $image->move('uploads', $imageName);
@@ -62,12 +64,12 @@ class BlogController extends BaseController
                 ->orLike('content', $keyword)
                 ->where('is_approved', 1)
                 ->orderBy('created_at', 'DESC')
-                ->findAll();
+                ->findAll(10, 0);
         } else {
             $data['blogs'] = $model
                 ->where('is_approved', 1)
                 ->orderBy('created_at', 'DESC')
-                ->findAll();
+                ->findAll(10, 0);
         }
 
         return view('blog/index', $data);
@@ -88,20 +90,69 @@ class BlogController extends BaseController
     }
 
     // View individual blog post
-   // View individual blog post
-public function view($id)
-{
-    $model = new BlogModel();
-    $blog = $model->select('blogs.*, users.username as author_name')
-                  ->join('users', 'users.id = blogs.author_id', 'left')
-                  ->where('blogs.id', $id)
-                  ->first();
+    public function view($id)
+    {
+        $model = new BlogModel();
+        $blog = $model->select('blogs.*, users.username as author_name')
+                      ->join('users', 'users.id = blogs.author_id', 'left')
+                      ->where('blogs.id', $id)
+                      ->first();
 
-    if (!$blog) {
-        throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Blog with ID $id not found");
+        if (!$blog) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Blog with ID $id not found");
+        }
+
+        // Get like count
+        $likeModel = new LikeModel();
+        $likeCount = $likeModel->where('blog_id', $id)->countAllResults();
+
+        // Get comments
+        $commentModel = new CommentModel();
+        $comments = $commentModel
+            ->select('comments.*, users.username')
+            ->join('users', 'users.id = comments.user_id', 'left')
+            ->where('blog_id', $id)
+            ->orderBy('created_at', 'DESC')
+            ->findAll();
+
+        return view('blog/view', [
+            'blog' => $blog,
+            'likeCount' => $likeCount,
+            'comments' => $comments
+        ]);
     }
 
-    return view('blog/view', ['blog' => $blog]);
+    // Add a new comment (with AI moderation)
+    public function comment($blogId)
+    {
+        $commentText = $this->request->getPost('comment');
+        $userId = session()->get('user_id');
+
+        $moderator = new AIModerator();
+        if ($moderator->checkInappropriate($commentText)) {
+            $model = new CommentModel();
+            $model->insert([
+                'blog_id' => $blogId,
+                'user_id' => $userId,
+                'comment' => $commentText
+            ]);
+            return redirect()->back()->with('message', 'Comment added!');
+        } else {
+            return redirect()->back()->with('error', 'Your comment has inappropriate content.');
+        }
+    }
+
+    public function loadComments($blogId)
+{
+    $offset = $this->request->getGet('offset') ?? 0;
+    $commentModel = new \App\Models\CommentModel();
+    $comments = $commentModel
+        ->select('comments.*, users.username')
+        ->join('users', 'users.id = comments.user_id', 'left')
+        ->where('blog_id', $blogId)
+        ->orderBy('created_at', 'DESC')
+        ->findAll(10, $offset);
+    return $this->response->setJSON($comments);
 }
 
 
@@ -116,7 +167,6 @@ public function view($id)
                            ->where('is_approved', 1)
                            ->findAll();
 
-        // ✅ Get all categories from CategoryModel instead of distinct from blog table
         $categoryModel = new CategoryModel();
         $categories = $categoryModel->getAllCategories();
 
@@ -128,35 +178,86 @@ public function view($id)
     }
 
     // Load more blogs for infinite scroll / load more
-public function loadMore()
-{
-    $offset = $this->request->getGet('offset');
-    $limit = 6; // number of blogs per load
+    public function loadMore()
+    {
+        $offset = $this->request->getGet('offset');
+        $limit = 6;
 
-    $blogModel = new \App\Models\BlogModel();
-    $blogs = $blogModel
-        ->where('is_approved', 1)
-        ->orderBy('created_at', 'DESC')
-        ->findAll($limit, $offset);
+        $blogModel = new BlogModel();
+        $blogs = $blogModel
+            ->where('is_approved', 1)
+            ->orderBy('created_at', 'DESC')
+            ->findAll($limit, $offset);
 
-    return $this->response->setJSON($blogs);
-}
+        return $this->response->setJSON($blogs);
+    }
 
-// In app/Controllers/BlogController.php
-public function searchSuggest()
-{
-    $query = $this->request->getGet('q');
-    $blogModel = new \App\Models\BlogModel();
+    // Search suggestions for autocomplete
+    public function searchSuggest()
+    {
+        $query = $this->request->getGet('q');
+        $blogModel = new BlogModel();
 
-    $blogs = $blogModel
-        ->like('title', $query)
-        ->select('id, title, image')   // make sure 'image' is selected
-        ->limit(5)
-        ->findAll();
+        $blogs = $blogModel
+            ->like('title', $query)
+            ->select('id, title, image')
+            ->limit(5)
+            ->findAll();
 
-    return $this->response->setJSON($blogs);
-}
+        return $this->response->setJSON($blogs);
+    }
+
+    // Like / Unlike toggle
+    public function like($blogId)
+    {
+        $likeModel = new LikeModel();
+        $userId = session()->get('user_id');
+
+        if (!$userId) {
+            return redirect()->back()->with('error', 'You must be logged in to like a blog.');
+        }
+
+        $existingLike = $likeModel
+            ->where('blog_id', $blogId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if ($existingLike) {
+            // Unlike
+            $likeModel->delete($existingLike['id']);
+            return redirect()->back()->with('message', 'You disliked this blog.');
+        } else {
+            // Like
+            $likeModel->insert([
+                'blog_id' => $blogId,
+                'user_id' => $userId
+            ]);
+            return redirect()->back()->with('message', 'You liked this blog!');
+        }
+    }
 
 
 
+    // Upload image (e.g., from CKEditor)
+    public function uploadImage()
+    {
+        $file = $this->request->getFile('upload');
+
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (! in_array($file->getMimeType(), $allowedTypes)) {
+                return $this->response->setJSON(['error' => ['message' => 'Invalid image type']]);
+            }
+
+            $newName = $file->getRandomName();
+            $file->move(ROOTPATH . 'public/uploads', $newName);
+
+            $url = base_url('uploads/' . $newName);
+
+            return $this->response->setJSON(["url" => $url]);
+        }
+
+
+        return $this->response->setJSON(["error" => ["message" => "Could not upload image"]]);
+    }
 }

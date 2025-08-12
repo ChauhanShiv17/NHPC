@@ -22,6 +22,12 @@ $routes->get('/blog', 'BlogController::index');               // All published b
 $routes->get('/blog/create', 'BlogController::create');       // Author create blog page
 $routes->post('/blog/store', 'BlogController::store');        // Store new blog
 $routes->get('blog/(:num)', 'BlogController::view/$1');       // View single blog post
+$routes->get('blog/view/(:num)', 'BlogController::view/$1');
+$routes->post('blog/uploadImage', 'BlogController::uploadImage');
+$routes->post('blog/like/(:num)', 'BlogController::like/$1');
+$routes->post('blog/comment/(:num)', 'BlogController::comment/$1');
+
+
 
 
 // ✅ Auth: Login / Register / Logout
@@ -39,11 +45,21 @@ $routes->get('/profile', 'UserController::profile');          // (Optional) prof
 $routes->get('author/dashboard', 'Author\Dashboard::index');  // Author dashboard
 $routes->get('author/blogs', 'AuthorController::index');      // List of author's own blogs
 $routes->get('/author/rejected-blogs', 'Author\Dashboard::rejectedBlogs');
+$routes->get('author/edit_rejected/(:num)', 'AuthorController::editRejected/$1');
+$routes->post('author/update_rejected/(:num)', 'AuthorController::updateRejected/$1');
+$routes->post('author/dashboard/updateRejected/(:num)', 'Author\Dashboard::updateRejected/$1');
+$routes->get('author/dashboard/editRejected/(:num)', 'Author\Dashboard::editRejected/$1');
+$routes->get('author/rejectedBlogs', 'Author\Dashboard::rejectedBlogs');
+
+
+
+
 
 
 // ✅ Admin Panel - Dashboard & analytics
 $routes->get('/admin/dashboard', 'AdminController::dashboard');     // Admin dashboard
 $routes->get('/admin/analytics', 'Admin\Analytics::index');         // (Optional) analytics page
+
 
 // ✅ Admin Panel - Blogs moderation
 $routes->get('admin/pending-blogs', 'AdminController::pendingBlogs'); // Pending blogs list
@@ -51,6 +67,9 @@ $routes->get('admin/approve/(:num)', 'AdminController::approve/$1');  // Approve
 $routes->get('admin/reject/(:num)', 'AdminController::reject/$1');    // Reject/delete a blog
 $routes->get('admin/all-blogs', 'AdminController::allBlogs');        // View all approved blogs
 $routes->get('/admin/rejected-blogs', 'AdminController::rejectedBlogs');
+$routes->get('admin/view/(:num)', 'AdminController::viewPending/$1');
+$routes->get('admin/view_pending_blog/(:num)', 'AdminController::viewPendingBlog/$1');
+$routes->post('admin/reject_with_review/(:num)', 'AdminController::reject_with_review/$1');
 
 
 // ✅ Admin Panel - Admins moderation

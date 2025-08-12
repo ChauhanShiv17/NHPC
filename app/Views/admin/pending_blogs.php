@@ -50,17 +50,11 @@
             text-decoration: none;
             transition: background 0.3s ease;
         }
-        .approve {
-            background-color: #28a745;
+        .view {
+            background-color: #17a2b8;
         }
-        .approve:hover {
-            background-color: #218838;
-        }
-        .reject {
-            background-color: #dc3545;
-        }
-        .reject:hover {
-            background-color: #c82333;
+        .view:hover {
+            background-color: #138496;
         }
         footer {
             text-align: center;
@@ -103,10 +97,9 @@
                     <tr>
                         <td><?= $blog['id'] ?></td>
                         <td><?= esc($blog['title']) ?></td>
-                        <td><?= word_limiter(esc($blog['content']), 10) ?></td>
+                        <td><?= word_limiter(($blog['content']), 10) ?></td>
                         <td class="actions">
-                            <a href="<?= site_url('admin/approve/' . $blog['id']) ?>" class="approve">Approve</a>
-                            <a href="<?= site_url('admin/reject/' . $blog['id']) ?>" class="reject">Reject</a>
+                            <a href="<?= site_url('admin/view/' . $blog['id']) ?>" class="view">View</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>

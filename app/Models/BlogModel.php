@@ -15,6 +15,7 @@ class BlogModel extends Model
         'image',
         'category',
         'is_approved',
+        'admin_review',     // ✅ added to allow saving and fetching review
         'created_at'
     ];
 

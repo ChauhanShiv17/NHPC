@@ -14,7 +14,6 @@
 
     .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
 
-    /* Search bar styling */
     .search-bar { display: flex; justify-content: center; margin-bottom: 2rem; }
     .search-bar input[type="text"] {
         width: 300px; padding: 0.6rem 1rem; border: 1px solid #ccc;
@@ -27,7 +26,13 @@
     }
     .search-bar button:hover { background-color: #004b99; }
 
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; }
+    /* ✅ Fixed grid to 5 columns, always 2 rows if blogs <=10 */
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1.5rem;
+    }
+
     .blog-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,0.08); transition: transform 0.2s ease; text-decoration: none; color: inherit; display: block; }
     .blog-card:hover { transform: translateY(-5px); }
     .blog-card img { width: 100%; height: 160px; object-fit: cover; }
@@ -35,25 +40,46 @@
     .blog-title { font-size: 1.1rem; font-weight: bold; color: #003366; margin-bottom: 0.5rem; }
     .blog-snippet { font-size: 0.95rem; color: #555; }
 
+    .view-more-btn {
+        display: inline-block;
+        margin-top: 1.5rem;
+        padding: 0.6rem 1.2rem;
+        background: #004aad;
+        color: white;
+        border-radius: 20px;
+        text-decoration: none;
+        font-size: 0.95rem;
+    }
+    .view-more-btn:hover { background: #003377; }
+
     .category-section { margin: 3rem auto; max-width: 1000px; padding: 0 1rem; }
     .category-section h2 { text-align: center; margin-bottom: 1rem; color: #333; }
     .categories { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
-.category-btn {
-    background-color: #0066cc;
-    color: white;
-    padding: 0.6rem 1.2rem;
-    border-radius: 20px;
-    text-decoration: none;
-    font-weight: 500;
-    transition: background-color 0.3s ease, font-weight 0s; /* Remove font-weight animation */
-}
-
-.category-btn:hover, .category-btn.active {
-    background-color: #004b99;
-    font-weight: 500; /* keep same font-weight to avoid shifting */
-}
+    .category-btn {
+        background-color: #0066cc;
+        color: white;
+        padding: 0.6rem 1.2rem;
+        border-radius: 20px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: background-color 0.3s ease;
+    }
+    .category-btn:hover, .category-btn.active {
+        background-color: #004b99;
+    }
 
     footer { text-align: center; padding: 1rem; background: #e9e9e9; margin-top: 4rem; font-size: 0.9rem; color: #555; }
+
+    /* ✅ Responsive fallback: on smaller screens, reduce columns */
+    @media (max-width: 1100px) {
+        .grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 900px) {
+        .grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 600px) {
+        .grid { grid-template-columns: repeat(2, 1fr); }
+    }
 </style>
 </head>
 <body>
@@ -64,50 +90,32 @@
   <div class="nav-buttons">
     <a href="<?= site_url('/blog') ?>">All Blogs</a>
     <?php if (session()->get('role') === 'author' || session()->get('role') === 'admin'): ?>
-<a href="<?= site_url('/author/dashboard') ?>">Author Panel</a>
+      <a href="<?= site_url('/author/dashboard') ?>">Author Panel</a>
     <?php endif; ?>
-<?php if (session()->get('role') === 'admin'): ?>
-  <a href="<?= site_url('/admin/dashboard') ?>">Admin Panel</a>
-<?php endif; ?>
-
+    <?php if (session()->get('role') === 'admin'): ?>
+      <a href="<?= site_url('/admin/dashboard') ?>">Admin Panel</a>
+    <?php endif; ?>
     <?php if (session()->get('isLoggedIn')): ?>
       <a href="<?= site_url('/logout') ?>">Logout</a>
     <?php endif; ?>
   </div>
 </header>
 
+
+
 <div class="container">
 
-  <!-- ✅ Search bar -->
   <form action="<?= site_url('search') ?>" method="get" class="search-bar">
     <input type="text" name="q" placeholder="Search blogs..." value="<?= esc($query ?? '') ?>">
     <button type="submit">🔍</button>
   </form>
 
-  <div class="grid">
-    <?php if (!empty($blogs)): ?>
-      <?php foreach ($blogs as $blog): ?>
-        <a href="<?= session()->get('isLoggedIn') ? site_url('blog/' . $blog['id']) : site_url('login') ?>" class="blog-card">
-          <img src="<?= !empty($blog['image']) ? base_url('uploads/' . $blog['image']) : base_url('assets/default.jpg') ?>" alt="Blog Image">
-          <div class="blog-content">
-            <div class="blog-title"><?= esc($blog['title']) ?></div>
-            <div class="blog-snippet"><?= word_limiter(strip_tags($blog['content']), 7) ?></div>
-          </div>
-        </a>
-      <?php endforeach; ?>
-    <?php else: ?>
-      <p>No recent blogs found.</p>
-    <?php endif; ?>
-  </div>
-</div>
-
-<div class="category-section">
+  <div class="category-section">
   <h2>Explore by Category</h2>
   <div class="categories">
     <?php if (!empty($categories)): ?>
-      <?php $selectedCategory = $selectedCategory ?? null; ?>
       <?php foreach ($categories as $cat): ?>
-        <a class="category-btn <?= ($selectedCategory === $cat['category_name']) ? 'active' : '' ?>"
+        <a class="category-btn <?= ($selectedCategory ?? '') === $cat['category_name'] ? 'active' : '' ?>"
            href="<?= session()->get('isLoggedIn') ? site_url('category/' . urlencode($cat['category_name'])) : site_url('login') ?>">
           <?= esc($cat['category_name']) ?>
         </a>
@@ -116,6 +124,28 @@
       <p>No categories found.</p>
     <?php endif; ?>
   </div>
+</div>
+
+  <?php if (!empty($blogs)): ?>
+    <div class="grid">
+      <?php foreach (array_slice($blogs, 0, 10) as $blog): ?>
+        <a href="<?= session()->get('isLoggedIn') ? site_url('blog/' . $blog['id']) : site_url('login') ?>" class="blog-card">
+          <img src="<?= !empty($blog['image']) ? base_url('uploads/' . $blog['image']) : base_url('assets/default.jpg') ?>" alt="Blog Image">
+          <div class="blog-content">
+            <div class="blog-title"><?= esc($blog['title']) ?></div>
+            <div class="blog-snippet"><?= word_limiter(strip_tags($blog['content']), 7) ?></div>
+          </div>
+        </a>
+      <?php endforeach; ?>
+    </div>
+    <?php if (count($blogs) > 10): ?>
+      <div style="text-align:center;">
+        <a href="<?= site_url('/blog') ?>" class="view-more-btn">View More Blogs</a>
+      </div>
+    <?php endif; ?>
+  <?php else: ?>
+    <p>No recent blogs found.</p>
+  <?php endif; ?>
 </div>
 
 <footer>© <?= date('Y') ?> NHPC Blog System. All rights reserved.</footer>
