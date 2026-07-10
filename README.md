@@ -1,64 +1,145 @@
-<<<<<<< HEAD
-# CodeIgniter 4 Framework
+# NHPC Blog CMS
 
-## What is CodeIgniter?
+A role-based Content Management System for blogging, built with **CodeIgniter 4** and **MySQL**, featuring an admin approval workflow and AI-assisted comment moderation.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+The platform supports three roles — **Viewer**, **Author**, and **Admin** — with authors submitting posts for review, admins moderating content and users, and an Ollama-powered local LLM screening comments before they go live.
 
-This repository holds the distributable version of the framework.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+---
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+## Features
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+### For Viewers
+- Browse published blogs with pagination ("load more" infinite scroll)
+- Search blogs by title/content with live autocomplete suggestions
+- Filter blogs by category
+- Like / unlike posts
+- Comment on posts — comments are automatically screened by a local AI model before being saved
 
-## Important Change with index.php
+### For Authors
+- Rich-text blog authoring with CKEditor 5, including inline image uploads
+- Submit posts for admin approval (new posts start as "pending")
+- Author dashboard listing all of their own submitted posts
+- View rejected posts along with the admin's written review
+- Edit and resubmit rejected posts for another round of review
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+### For Admins
+- Review and approve/reject pending blog posts, with a written rejection reason sent back to the author
+- View all approved, pending, and rejected blogs
+- Manage users: view all registered users, block/remove accounts
+- **New admin signups require approval from an existing admin** before they can log in
+- Analytics dashboard: total blogs, and user counts broken down by role (admin/author/viewer)
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+### AI Comment Moderation
+Every comment is passed to a local **Ollama** instance (`phi` model) before being stored. The model is prompted to classify the comment as `GOOD` or `BAD`; inappropriate comments are blocked at submission time rather than relying on manual moderation.
 
-**Please** read the user guide for a better explanation of how CI4 works!
+---
 
-## Repository Management
+## Tech Stack
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+| Layer            | Technology                                   |
+|-------------------|-----------------------------------------------|
+| Backend framework | PHP 8.1+, CodeIgniter 4 (MVC)                 |
+| Database          | MySQL (MySQLi driver)                         |
+| Auth              | Session-based authentication, role middleware |
+| Rich text editor  | CKEditor 5                                    |
+| Icons             | Font Awesome 6.4              |
+| AI moderation     | Ollama (local LLM, `phi` model) via REST call |
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+---
 
-## Contributing
+## Roles at a Glance
 
-We welcome contributions from the community.
+| Role    | Can do                                                                 | Requires approval? |
+|---------|-------------------------------------------------------------------------|---------------------|
+| Viewer  | Browse, search, like, comment                                          | No (auto-approved)  |
+| Author  | Everything a Viewer can, plus create/edit/resubmit blog posts          | No (auto-approved)  |
+| Admin   | Everything above, plus approve/reject posts, manage users, view analytics | Yes — approved by an existing admin |
 
-Please read the [*Contributing to CodeIgniter*](https://github.com/codeigniter4/CodeIgniter4/blob/develop/CONTRIBUTING.md) section in the development repository.
+---
 
-## Server Requirements
+## Database Schema (Core Tables)
 
-PHP version 8.1 or higher is required, with the following extensions installed:
+- **users** — `username`, `email`, `password`, `role`, `is_approved`, `created_at`
+- **blogs** — `title`, `content`, `author_id`, `image`, `category`, `is_approved`, `admin_review`, `created_at`
+- **categories** — `category_name`
+- **comments** — `blog_id`, `user_id`, `comment`
+- **likes** — `blog_id`, `user_id`
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+`is_approved` on `blogs` uses `1` (approved), `0` (pending), `-1` (rejected). The same convention is used on `users.is_approved` for admin approval and for blocking users.
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - If you are still using PHP 7.4 or 8.0, you should upgrade immediately.
-> - The end of life date for PHP 8.1 will be December 31, 2025.
+---
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+## Project Structure
+```
+app/
+├── Controllers/
+│   ├── AuthController.php       # Login, register, logout
+│   ├── Blogcontroller.php       # Blog CRUD, likes, comments, search
+│   ├── AdminController.php      # Blog/user moderation
+│   ├── ProfileController.php
+│   ├── Admin/
+│   │   ├── Dashboard.php
+│   │   └── Analytics.php
+│   └── Author/
+│       └── Dashboard.php
+├── Models/                      # UserModel, BlogModel, CategoryModel, CommentModel, LikeModel
+├── Libraries/
+│   └── AIModerator.php          # Ollama-based comment moderation
+└── Views/                       # Blog, auth, admin, author templates
+```
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
-=======
-# NHPC
->>>>>>> ceccdf71e5ede84757d7ec1bfab0bed0df62aff7
+---
+
+## Setup & Installation
+
+### Prerequisites
+- PHP 8.1+
+- Composer
+- MySQL
+- (Optional, for AI moderation) [Ollama](https://ollama.com) running locally with the `phi` model pulled: `ollama pull phi`
+
+### Steps
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/ChauhanShiv17/NHPC.git
+cd NHPC
+
+# 2. Install dependencies
+composer install
+
+# 3. Configure environment
+cp env .env
+# then edit .env and set:
+#   database.default.hostname = localhost
+#   database.default.database = nhpc_blog
+#   database.default.username = <your_db_user>
+#   database.default.password = <your_db_password>
+#   database.default.DBDriver = MySQLi
+
+# 4. Create the database and import schema
+mysql -u root -p -e "CREATE DATABASE nhpc_blog"
+mysql -u root -p nhpc_blog < schema.sql   # see note below
+
+# 5. Serve the app
+php spark serve
+```
+
+The app will be available at `http://localhost:8080`.
+
+> **Note:** This repo doesn't currently include CI4 migration files or a `schema.sql` dump, so the database structure above needs to be created manually or exported from a working instance. Adding a proper migration/seed setup is on the improvements list.
+
+---
+
+## Known Limitations / Next Steps
+
+- Passwords are currently hashed with MD5 — should be migrated to `password_hash()` (bcrypt/argon2).
+- `.env` is committed to the repo; it should be gitignored with an `.env.example` kept instead.
+- No database migrations — schema isn't reproducible from the repo alone yet.
+- AI moderation depends on a local Ollama instance; no fallback moderation strategy if Ollama is unavailable.
+
+---
+
+## License
+
+MIT
